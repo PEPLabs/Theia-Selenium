@@ -71,7 +71,7 @@ function convertToUppercase(str){
  */
 
 function consoleLogEachItem(str){
-    console.log(str); // Keeps the console log
+    console.log(str); 
     let consoleOutput = document.getElementById("consoleOutput");
     consoleOutput.innerText += str + "\n"; 
 }
