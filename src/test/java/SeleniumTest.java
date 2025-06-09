@@ -133,7 +133,16 @@ public class SeleniumTest {
                 "--user-data-dir=/tmp/chrome-test-" + System.currentTimeMillis(),
                 "--verbose",
                 "--enable-logging=stderr",
-                "--log-level=0"
+                "--log-level=0",
+                "--disable-background-timer-throttling",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-renderer-backgrounding",
+                "--disable-features=TranslateUI",
+                "--disable-ipc-flooding-protection",
+                "--force-device-scale-factor=1",
+                "--disable-hang-monitor",
+                "--disable-prompt-on-repost",
+                "--disable-domain-reliability"
             };
             
             System.out.println("Chrome arguments:");
@@ -155,6 +164,10 @@ public class SeleniumTest {
                 serviceBuilder.usingDriverExecutable(new File(foundDriverPath));
             }
             serviceBuilder.withVerbose(true);
+            
+            // Add timeout to prevent hanging
+            serviceBuilder.withTimeout(Duration.ofSeconds(30));
+            
             ChromeDriverService service = serviceBuilder.build();
             
             System.out.println("\n=== CREATING WEBDRIVER ===");
@@ -241,12 +254,40 @@ public class SeleniumTest {
                     System.out.println("Could not retrieve final browser logs: " + e.getMessage());
                 }
                 
+                // Force close all windows first
+                try {
+                    webDriver.close();
+                    System.out.println("WebDriver windows closed");
+                } catch (Exception e) {
+                    System.out.println("Error closing windows: " + e.getMessage());
+                }
+                
+                // Then quit the driver
                 webDriver.quit();
-                System.out.println("WebDriver closed successfully");
+                System.out.println("WebDriver quit successfully");
+                
+                // Force null the reference
+                webDriver = null;
+                wait = null;
+                
+                // Force garbage collection to clean up any lingering references
+                System.gc();
+                
+                // Small delay to allow cleanup
+                Thread.sleep(100);
+                
             } catch (Exception e) {
                 System.err.println("Error closing WebDriver: " + e.getMessage());
+                // Force quit even on error
+                try {
+                    if (webDriver != null) {
+                        webDriver.quit();
+                        webDriver = null;
+                    }
+                } catch (Exception ignored) {}
             }
         }
+        System.out.println("Teardown completed");
     }
 
     @Test
