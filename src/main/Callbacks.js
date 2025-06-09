@@ -23,7 +23,7 @@ arrForEach(originalArray);
  * I'll provide this first one to you: return arr.filter(containsSpace);
  */
 function arrFilter(arr){
-//    code here
+    return arr.filter(containsSpace)
 }
 
 /**
