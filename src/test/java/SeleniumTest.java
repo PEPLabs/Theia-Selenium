@@ -2,11 +2,18 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -59,7 +66,8 @@ public class SeleniumTest {
                 "/usr/bin/chromedriver",
                 "/usr/local/bin/chromedriver",
                 "/snap/bin/chromedriver",
-                System.getProperty("user.home") + "/.cache/selenium/chromedriver/linux64/chromedriver"
+                System.getProperty("user.home") + "/.cache/selenium/chromedriver/linux64/chromedriver",
+                "/opt/chromedriver/chromedriver"
             };
             
             System.out.println("\n=== CHROMEDRIVER CHECK ===");
@@ -69,15 +77,32 @@ public class SeleniumTest {
                 System.out.println("Checking " + path + ": " + driverFile.exists());
                 if (driverFile.exists() && foundDriverPath == null) {
                     foundDriverPath = path;
+                    // Verify it's executable
+                    if (!driverFile.canExecute()) {
+                        System.out.println("WARNING: " + path + " exists but is not executable");
+                        try {
+                            driverFile.setExecutable(true);
+                            System.out.println("Made " + path + " executable");
+                        } catch (Exception e) {
+                            System.out.println("Could not make " + path + " executable: " + e.getMessage());
+                            foundDriverPath = null;
+                            continue;
+                        }
+                    }
                 }
             }
             
-            // Set ChromeDriver path
+            // CRITICAL: Set ChromeDriver path to bypass selenium-manager
             if (foundDriverPath != null) {
                 System.setProperty("webdriver.chrome.driver", foundDriverPath);
                 System.out.println("Using ChromeDriver: " + foundDriverPath);
+                
+                // Disable selenium-manager to prevent ARM64 compatibility issues
+                System.setProperty("webdriver.chrome.driver", foundDriverPath);
+                System.setProperty("selenium.manager.debug", "false");
+                
             } else {
-                System.out.println("WARNING: No ChromeDriver found, relying on PATH or WebDriverManager");
+                throw new RuntimeException("No compatible ChromeDriver found for ARM64. Please install ChromeDriver manually.");
             }
             
             // Debug: Check HTML file
@@ -158,14 +183,18 @@ public class SeleniumTest {
             logPrefs.enable(LogType.PERFORMANCE, Level.INFO);
             options.setCapability("goog:loggingPrefs", logPrefs);
             
-            // Create ChromeDriverService with verbose logging
+            // Create ChromeDriverService with explicit path (bypass selenium-manager)
             ChromeDriverService.Builder serviceBuilder = new ChromeDriverService.Builder();
+            
+            // MUST set explicit driver path to avoid selenium-manager on ARM64
             if (foundDriverPath != null) {
                 serviceBuilder.usingDriverExecutable(new File(foundDriverPath));
+                System.out.println("ChromeDriverService using explicit path: " + foundDriverPath);
+            } else {
+                throw new RuntimeException("ChromeDriver path is required but not found");
             }
-            serviceBuilder.withVerbose(true);
             
-            // Add timeout to prevent hanging
+            serviceBuilder.withVerbose(true);
             serviceBuilder.withTimeout(Duration.ofSeconds(30));
             
             ChromeDriverService service = serviceBuilder.build();
