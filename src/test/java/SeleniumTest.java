@@ -204,12 +204,12 @@ public class SeleniumTest {
             webDriver = new ChromeDriver(service, options);
             System.out.println("WebDriver created successfully");
             
-            // Initialize WebDriverWait
-            wait = new WebDriverWait(webDriver, Duration.ofSeconds(15));
+            // Initialize WebDriverWait with longer timeout
+            wait = new WebDriverWait(webDriver, Duration.ofSeconds(30));
             
-            // Set timeouts
-            webDriver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
-            webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+            // Set longer timeouts
+            webDriver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(60));
+            webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
             
             System.out.println("\n=== NAVIGATING TO PAGE ===");
             System.out.println("Navigating to: " + httpUrl);
@@ -354,8 +354,9 @@ public class SeleniumTest {
             
             httpServerProcess = pb.start();
             
-            // Wait a moment for the server to start
-            Thread.sleep(2000);
+            // Wait longer for the server to start and verify it's working
+            System.out.println("Waiting for HTTP server to start...");
+            Thread.sleep(3000); // Increased from 2 seconds to 3 seconds
             
             // Check if the server is still running
             if (!httpServerProcess.isAlive()) {
@@ -363,8 +364,32 @@ public class SeleniumTest {
             }
             
             String url = "http://localhost:" + port + "/" + fileName;
-            System.out.println("HTTP server started successfully, serving: " + url);
             
+            // Test server connectivity before proceeding
+            for (int i = 0; i < 10; i++) {
+                try {
+                    java.net.URL testUrl = new java.net.URL(url);
+                    java.net.HttpURLConnection connection = (java.net.HttpURLConnection) testUrl.openConnection();
+                    connection.setConnectTimeout(1000);
+                    connection.setReadTimeout(1000);
+                    connection.setRequestMethod("HEAD");
+                    int responseCode = connection.getResponseCode();
+                    connection.disconnect();
+                    
+                    if (responseCode == 200) {
+                        System.out.println("HTTP server is ready and responding");
+                        break;
+                    }
+                } catch (Exception e) {
+                    if (i == 9) {
+                        throw new RuntimeException("HTTP server not responding after 10 attempts: " + e.getMessage());
+                    }
+                    System.out.println("Waiting for server... attempt " + (i + 1));
+                    Thread.sleep(1000);
+                }
+            }
+            
+            System.out.println("HTTP server started successfully, serving: " + url);
             return url;
             
         } catch (Exception e) {
