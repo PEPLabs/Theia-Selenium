@@ -2,18 +2,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -31,6 +24,7 @@ public class SeleniumTest {
     private WebDriver webDriver;
     private WebDriverWait wait;
     private static final Logger logger = Logger.getLogger(SeleniumTest.class.getName());
+    private Process httpServerProcess; // Store the HTTP server process for cleanup
   
     @BeforeEach
     public void setUp() {
@@ -105,34 +99,35 @@ public class SeleniumTest {
                 throw new RuntimeException("No compatible ChromeDriver found for ARM64. Please install ChromeDriver manually.");
             }
             
-            // Debug: Check HTML file
-            File file = new File("src/main/Callbacks.html");
-            String path = "file://" + file.getAbsolutePath();
-            System.out.println("\n=== HTML FILE CHECK ===");
-            System.out.println("HTML file path: " + file.getAbsolutePath());
-            System.out.println("HTML file exists: " + file.exists());
-            System.out.println("HTML file URL: " + path);
+            // === FIND HTML FILE AND START HTTP SERVER ===
+            System.out.println("\n=== STARTING HTTP SERVER FOR HTML FILE ===");
             
-            if (!file.exists()) {
-                // Try alternative paths
-                String[] altPaths = {
-                    "Callbacks.html",
-                    "src/test/resources/Callbacks.html",
-                    "test-resources/Callbacks.html"
-                };
-                
-                System.out.println("Trying alternative HTML paths:");
-                for (String altPath : altPaths) {
-                    File altFile = new File(altPath);
-                    System.out.println("  " + altPath + ": " + altFile.exists());
-                    if (altFile.exists()) {
-                        file = altFile;
-                        path = "file://" + file.getAbsolutePath();
-                        System.out.println("Using alternative path: " + path);
-                        break;
-                    }
+            // Find the source HTML file
+            File htmlFile = null;
+            String[] possibleHtmlPaths = {
+                "src/main/Callbacks.html",
+                "Callbacks.html",
+                "src/test/resources/Callbacks.html",
+                "test-resources/Callbacks.html"
+            };
+            
+            for (String htmlPath : possibleHtmlPaths) {
+                File testFile = new File(htmlPath);
+                System.out.println("Checking for HTML file: " + testFile.getAbsolutePath() + " = " + testFile.exists());
+                if (testFile.exists()) {
+                    htmlFile = testFile;
+                    break;
                 }
             }
+            
+            if (htmlFile == null) {
+                throw new RuntimeException("Could not find Callbacks.html in any of the expected locations: " + 
+                    Arrays.toString(possibleHtmlPaths));
+            }
+            
+            // Start HTTP server serving from the directory containing the HTML file
+            String httpUrl = startSimpleHttpServer(htmlFile);
+            System.out.println("HTML file URL: " + httpUrl);
             
             System.out.println("\n=== CREATING CHROME OPTIONS ===");
             ChromeOptions options = new ChromeOptions();
@@ -169,6 +164,12 @@ public class SeleniumTest {
                 "--disable-prompt-on-repost",
                 "--disable-domain-reliability"
             };
+
+            // Add file access permissions
+            options.addArguments("--allow-file-access-from-files");
+            options.addArguments("--disable-web-security");
+            options.addArguments("--allow-running-insecure-content");
+            options.addArguments("--disable-features=VizDisplayCompositor");
             
             System.out.println("Chrome arguments:");
             for (String arg : args) {
@@ -211,14 +212,22 @@ public class SeleniumTest {
             webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
             
             System.out.println("\n=== NAVIGATING TO PAGE ===");
-            System.out.println("Navigating to: " + path);
-            webDriver.get(path);
+            System.out.println("Navigating to: " + httpUrl);
+            webDriver.get(httpUrl);
             System.out.println("Navigation completed");
             
             // Debug: Print page info
             System.out.println("Page title: " + webDriver.getTitle());
             System.out.println("Current URL: " + webDriver.getCurrentUrl());
             System.out.println("Page source length: " + webDriver.getPageSource().length());
+            
+            // Check if page source is reasonable (not an error page)
+            String pageSource = webDriver.getPageSource();
+            if (pageSource.length() > 50000) {
+                System.out.println("WARNING: Page source is very large (" + pageSource.length() + " chars) - might be an error page");
+                System.out.println("First 500 chars of page source:");
+                System.out.println(pageSource.substring(0, Math.min(500, pageSource.length())));
+            }
             
             // Wait for page to load
             wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
@@ -257,6 +266,7 @@ public class SeleniumTest {
             }
             
             // Cleanup on failure
+            stopHttpServer();
             if (webDriver != null) {
                 try {
                     webDriver.quit();
@@ -316,7 +326,81 @@ public class SeleniumTest {
                 } catch (Exception ignored) {}
             }
         }
+        
+        // Clean up the HTTP server
+        stopHttpServer();
+        
         System.out.println("Teardown completed");
+    }
+    
+    /**
+     * Start a simple HTTP server to serve the HTML file
+     */
+    private String startSimpleHttpServer(File htmlFile) {
+        try {
+            // Use a random port between 8000-9000
+            int port = 8000 + (int)(Math.random() * 1000);
+            
+            // Get the directory containing the HTML file
+            String directory = htmlFile.getParent();
+            String fileName = htmlFile.getName();
+            
+            System.out.println("Starting HTTP server on port " + port + " in directory: " + directory);
+            
+            // Start Python HTTP server
+            ProcessBuilder pb = new ProcessBuilder("python3", "-m", "http.server", String.valueOf(port));
+            pb.directory(new File(directory));
+            pb.redirectErrorStream(true);
+            
+            httpServerProcess = pb.start();
+            
+            // Wait a moment for the server to start
+            Thread.sleep(2000);
+            
+            // Check if the server is still running
+            if (!httpServerProcess.isAlive()) {
+                throw new RuntimeException("HTTP server failed to start");
+            }
+            
+            String url = "http://localhost:" + port + "/" + fileName;
+            System.out.println("HTTP server started successfully, serving: " + url);
+            
+            return url;
+            
+        } catch (Exception e) {
+            System.err.println("Failed to start HTTP server: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Could not start HTTP server", e);
+        }
+    }
+    
+    /**
+     * Stop the HTTP server process
+     */
+    private void stopHttpServer() {
+        if (httpServerProcess != null) {
+            try {
+                System.out.println("Stopping HTTP server...");
+                httpServerProcess.destroy();
+                
+                // Wait up to 5 seconds for graceful shutdown
+                boolean terminated = httpServerProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+                if (!terminated) {
+                    System.out.println("HTTP server didn't terminate gracefully, forcing shutdown...");
+                    httpServerProcess.destroyForcibly();
+                }
+                
+                System.out.println("HTTP server stopped");
+                httpServerProcess = null;
+                
+            } catch (Exception e) {
+                System.out.println("Warning: Error stopping HTTP server: " + e.getMessage());
+                try {
+                    httpServerProcess.destroyForcibly();
+                } catch (Exception ignored) {}
+                httpServerProcess = null;
+            }
+        }
     }
 
     @Test
