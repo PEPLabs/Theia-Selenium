@@ -138,7 +138,6 @@ public class SeleniumTest {
                 System.out.println("Using Chrome binary: " + foundChromePath);
             }
             
-            // Add arguments with debug output
             String[] args = {
                 "--headless=new",
                 "--no-sandbox",
@@ -147,22 +146,13 @@ public class SeleniumTest {
                 "--window-size=1920,1080",
                 "--disable-extensions",
                 "--disable-web-security",
-                "--single-process",
-                "--no-zygote",
-                "--disable-setuid-sandbox",
+                "--allow-file-access-from-files",
+                "--allow-running-insecure-content",
                 "--user-data-dir=/tmp/chrome-test-" + System.currentTimeMillis(),
-                "--verbose",
-                "--enable-logging=stderr",
-                "--log-level=0",
+                "--disable-features=TranslateUI,VizDisplayCompositor",
                 "--disable-background-timer-throttling",
                 "--disable-backgrounding-occluded-windows",
-                "--disable-renderer-backgrounding",
-                "--disable-features=TranslateUI",
-                "--disable-ipc-flooding-protection",
-                "--force-device-scale-factor=1",
-                "--disable-hang-monitor",
-                "--disable-prompt-on-repost",
-                "--disable-domain-reliability"
+                "--disable-renderer-backgrounding"
             };
 
             // Add file access permissions
