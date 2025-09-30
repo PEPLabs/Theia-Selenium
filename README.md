@@ -6,10 +6,11 @@ For instance, in the [JS-CL-Classes](https://github.com/PEPLabs/JS-CL-CLASSES) l
 ## AI Tools
 We suggest using AI tools to make this quicker. Take a look at the changes below, but we should be able to have an AI make the changes we need by providing it the test file to edit, and the infrustructure to add in. I did this with [claude](https://claude.ai/) and it worked very well. Just watch out for it to do things like upgrade to Junit 5, the labs are currently using Junit 4 so we should stick with that for now. I copy/pasted into claude the JS-CL-Classes test class as well as the [prototype test file](https://github.com/PEPLabs/Theia-Selenium) and gave it the following prompt:
 ```
-
+Take these two test files, and implement the new testing infrastructure from the larger one in the smaller one. The actual test logic should remain unchanged. Keep the new code on Junit 4, we aren't upgrading to Junit 5 today. Do not add any unnecessary code, don't make changes to the @Test annotated functions. 
 ```
 This produced a [working lab](https://github.com/PEPLabs/Kyle-Testing-ChromeDriver).
 
+Your mileage may vary, and this will use up all of your free daily claude tokens in short order.
 
 
 
@@ -80,6 +81,17 @@ Add this small class to the file, nested within the test class.
             this.binaryPath = binaryPath;
         }
     }
+```
+### Finding HTML files
+Take special note of the `findHtmlFile()` helper funciton. The location of the html files used in the lab should be in that list. 
+```Java
+    String[] possibleHtmlPaths = {
+            "src/main/cat-facts.html",
+            "cat-facts.html",
+            "src/test/resources/cat-facts.html",
+            "test-resources/cat-facts.html",
+            "src/main/resources/cat-facts.html"
+        };
 ```
 
 ### Helper Funcitons
