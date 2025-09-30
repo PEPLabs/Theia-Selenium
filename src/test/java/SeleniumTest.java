@@ -22,7 +22,10 @@ import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
+////////////////////////////////////////////////////////////
+// This is the new testing infrastructure. Merge this     //
+// into the other file without altering the test methods. //
+////////////////////////////////////////////////////////////
 public class SeleniumTest {
     private WebDriver webDriver;
     private WebDriverWait wait;
@@ -539,78 +542,81 @@ public class SeleniumTest {
         cleanup();
         System.out.println("Teardown completed");
     }
+    ////////////////////////////////////////////////////////////
+    // These tests should not be merged into the other file.  //
+    // These tests can be ignored.                            //
+    ////////////////////////////////////////////////////////////
+    // @Test
+    // public void testOriginalArray() {
+    //     System.out.println("\n=== TEST: Original Array ===");
+    //     WebElement originalElement = wait.until(
+    //         ExpectedConditions.presenceOfElementLocated(By.id("original"))
+    //     );
+    //     String originalText = originalElement.getText();
+    //     System.out.println("Found original text: " + originalText);
+        
+    //     List<String> expectedArray = Arrays.asList("Homer", "Marge", "Bart", "Lisa", "Maggie", "Principal Skinner", "Mr Burns", "Moe", "Ned Flanders");
+    //     String expectedText = String.join(",", expectedArray);
+        
+    //     assertEquals(expectedText, originalText);
+    //     System.out.println("Original array test PASSED");
+    // }
 
-    @Test
-    public void testOriginalArray() {
-        System.out.println("\n=== TEST: Original Array ===");
-        WebElement originalElement = wait.until(
-            ExpectedConditions.presenceOfElementLocated(By.id("original"))
-        );
-        String originalText = originalElement.getText();
-        System.out.println("Found original text: " + originalText);
+    // @Test
+    // public void testFilteredArray() {
+    //     System.out.println("\n=== TEST: Filtered Array ===");
+    //     WebElement filteredElement = wait.until(
+    //         ExpectedConditions.presenceOfElementLocated(By.id("afterFilter"))
+    //     );
+    //     String filteredText = filteredElement.getText();
+    //     System.out.println("Found filtered text: " + filteredText);
         
-        List<String> expectedArray = Arrays.asList("Homer", "Marge", "Bart", "Lisa", "Maggie", "Principal Skinner", "Mr Burns", "Moe", "Ned Flanders");
-        String expectedText = String.join(",", expectedArray);
+    //     List<String> expectedFiltered = Arrays.asList("Homer", "Marge", "Bart", "Lisa", "Maggie", "Moe");
+    //     String expectedText = String.join(",", expectedFiltered);
         
-        assertEquals(expectedText, originalText);
-        System.out.println("Original array test PASSED");
-    }
+    //     assertEquals(expectedText, filteredText);
+    //     System.out.println("Filtered array test PASSED");
+    // }
 
-    @Test
-    public void testFilteredArray() {
-        System.out.println("\n=== TEST: Filtered Array ===");
-        WebElement filteredElement = wait.until(
-            ExpectedConditions.presenceOfElementLocated(By.id("afterFilter"))
-        );
-        String filteredText = filteredElement.getText();
-        System.out.println("Found filtered text: " + filteredText);
+    // @Test
+    // public void testMappedArray() {
+    //     System.out.println("\n=== TEST: Mapped Array ===");
+    //     WebElement mappedElement = wait.until(
+    //         ExpectedConditions.presenceOfElementLocated(By.id("afterMap"))
+    //     );
+    //     String mappedText = mappedElement.getText();
+    //     System.out.println("Found mapped text: " + mappedText);
         
-        List<String> expectedFiltered = Arrays.asList("Homer", "Marge", "Bart", "Lisa", "Maggie", "Moe");
-        String expectedText = String.join(",", expectedFiltered);
+    //     List<String> expectedMapped = Arrays.asList("HOMER", "MARGE", "BART", "LISA", "MAGGIE", "PRINCIPAL SKINNER", "MR BURNS", "MOE", "NED FLANDERS");
+    //     String expectedText = String.join(",", expectedMapped);
         
-        assertEquals(expectedText, filteredText);
-        System.out.println("Filtered array test PASSED");
-    }
+    //     assertEquals(expectedText, mappedText);
+    //     System.out.println("Mapped array test PASSED");
+    // }
 
-    @Test
-    public void testMappedArray() {
-        System.out.println("\n=== TEST: Mapped Array ===");
-        WebElement mappedElement = wait.until(
-            ExpectedConditions.presenceOfElementLocated(By.id("afterMap"))
-        );
-        String mappedText = mappedElement.getText();
-        System.out.println("Found mapped text: " + mappedText);
+    // @Test
+    // public void testArrForEach() {
+    //     System.out.println("\n=== TEST: ForEach Array ===");
+    //     WebElement consoleOutputElement = wait.until(
+    //         ExpectedConditions.presenceOfElementLocated(By.id("consoleOutput"))
+    //     );
         
-        List<String> expectedMapped = Arrays.asList("HOMER", "MARGE", "BART", "LISA", "MAGGIE", "PRINCIPAL SKINNER", "MR BURNS", "MOE", "NED FLANDERS");
-        String expectedText = String.join(",", expectedMapped);
+    //     wait.until(ExpectedConditions.not(
+    //         ExpectedConditions.textToBe(By.id("consoleOutput"), "")
+    //     ));
         
-        assertEquals(expectedText, mappedText);
-        System.out.println("Mapped array test PASSED");
-    }
-
-    @Test
-    public void testArrForEach() {
-        System.out.println("\n=== TEST: ForEach Array ===");
-        WebElement consoleOutputElement = wait.until(
-            ExpectedConditions.presenceOfElementLocated(By.id("consoleOutput"))
-        );
+    //     String consoleText = consoleOutputElement.getText();
+    //     System.out.println("Console output text: " + consoleText);
         
-        wait.until(ExpectedConditions.not(
-            ExpectedConditions.textToBe(By.id("consoleOutput"), "")
-        ));
+    //     List<String> expectedArray = Arrays.asList("Homer", "Marge", "Bart", "Lisa", "Maggie", "Principal Skinner", "Mr Burns", "Moe", "Ned Flanders");
         
-        String consoleText = consoleOutputElement.getText();
-        System.out.println("Console output text: " + consoleText);
+    //     for (String item : expectedArray) {
+    //         assertTrue(consoleText.contains(item), 
+    //             "Console output should contain " + item + ". Actual output: " + consoleText);
+    //     }
         
-        List<String> expectedArray = Arrays.asList("Homer", "Marge", "Bart", "Lisa", "Maggie", "Principal Skinner", "Mr Burns", "Moe", "Ned Flanders");
-        
-        for (String item : expectedArray) {
-            assertTrue(consoleText.contains(item), 
-                "Console output should contain " + item + ". Actual output: " + consoleText);
-        }
-        
-        System.out.println("ForEach array test PASSED");
-    }
+    //     System.out.println("ForEach array test PASSED");
+    // }
     
     // Helper class to store browser configuration
     private static class BrowserConfig {
@@ -624,4 +630,5 @@ public class SeleniumTest {
             this.binaryPath = binaryPath;
         }
     }
+
 }
